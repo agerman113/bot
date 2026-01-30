@@ -1,3 +1,10 @@
+import os
+print("=" * 50)
+print("БОТ ЗАПУЩЕН!")
+print(f"Токен установлен: {'ДА' if os.getenv('VK_GROUP_TOKEN') else 'НЕТ'}")
+print(f"ID группы: {os.getenv('VK_GROUP_ID', 'НЕ НАЙДЕН')}")
+print("=" * 50)
+
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 import logging
@@ -97,4 +104,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logger.info("Бот остановлен пользователем")
     except Exception as e:
+
         logger.error(f"Критическая ошибка: {e}")
