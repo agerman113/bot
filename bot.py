@@ -16,7 +16,7 @@ GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
 GROUP_ID = os.getenv('VK_GROUP_ID')
 
 # ID администраторов (ваш ID VK)
-ADMIN_IDS = [123456789]  # ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ ID VK
+ADMIN_IDS = [153444476]  # ЗАМЕНИТЕ НА ВАШ РЕАЛЬНЫЙ ID VK
 
 class TelemarketingBot:
     def __init__(self):
@@ -782,3 +782,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
