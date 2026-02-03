@@ -1,9 +1,13 @@
 import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+import sqlite3
 import os
-import logging
 import json
+from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import logging
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -13,147 +17,280 @@ logger = logging.getLogger(__name__)
 GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
 GROUP_ID = os.getenv('VK_GROUP_ID')
 
-# Хранилище состояния пользователей (вместо БД для теста)
-user_states = {}
-user_projects = {}
+# Настройка Google Sheets (если есть)
+GOOGLE_SHEET_ID = os.getenv('GOOGLE_SHEET_ID', '')
+GOOGLE_CREDS_JSON = os.getenv('GOOGLE_CREDS_JSON', '')
 
-# Данные из вашей таблицы (упрощенный вариант)
-PARTNER_PROGRAMS = {
-    "ai-up": {
-        "name": "AI-Up (Перехватчик заявок)",
-        "description": "Сервис перехвата заявок с сайтов",
-        "url": "https://ai-up.ru?ref=f45258cb-162e-4afc-a6b3-e4bb3a373a19",
-        "has_leads": True,
-        "steps": [
-            "1. Зарегистрируйтесь по ссылке",
-            "2. Подключите свой сайт или сайт клиента",
-            "3. Настройте фильтры для сбора заявок",
-            "4. Получайте уведомления о новых лидах"
+class TelemarketingBot:
+    def __init__(self):
+        self.db = sqlite3.connect('telemarketing.db', check_same_thread=False)
+        self.init_database()
+        self.init_google_sheets()
+        
+        # Тестовая база из 3 номеров
+        self.create_test_numbers()
+    
+    def init_database(self):
+        """Инициализация базы данных"""
+        cursor = self.db.cursor()
+        
+        # Таблица номеров
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS phone_numbers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT UNIQUE,
+                company TEXT,
+                contact_name TEXT,
+                description TEXT,
+                status TEXT DEFAULT 'new', -- new, called, callback, invalid
+                manager_id INTEGER,
+                call_result TEXT,
+                call_time TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Таблица менеджеров
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS managers (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                full_name TEXT,
+                calls_made INTEGER DEFAULT 0,
+                successful_calls INTEGER DEFAULT 0,
+                last_active TIMESTAMP
+            )
+        ''')
+        
+        self.db.commit()
+        logger.info("База данных инициализирована")
+    
+    def init_google_sheets(self):
+        """Инициализация Google Sheets"""
+        self.sheet = None
+        if GOOGLE_SHEET_ID and GOOGLE_CREDS_JSON:
+            try:
+                # Сохраняем JSON во временный файл
+                creds_dict = json.loads(GOOGLE_CREDS_JSON)
+                with open('service_account.json', 'w') as f:
+                    json.dump(creds_dict, f)
+                
+                # Авторизация
+                scope = ['https://spreadsheets.google.com/feeds',
+                        'https://www.googleapis.com/auth/drive']
+                creds = ServiceAccountCredentials.from_json_keyfile_name('service_account.json', scope)
+                client = gspread.authorize(creds)
+                
+                # Открываем таблицу
+                self.sheet = client.open_by_key(GOOGLE_SHEET_ID).sheet1
+                
+                # Создаем заголовки, если лист пустой
+                if not self.sheet.get_all_values():
+                    self.sheet.append_row([
+                        'Дата и время', 'ID менеджера', 'Телефон', 
+                        'Компания', 'Контакт', 'Результат', 'Комментарий'
+                    ])
+                
+                logger.info("Google Sheets подключен")
+            except Exception as e:
+                logger.error(f"Ошибка подключения к Google Sheets: {e}")
+        else:
+            logger.warning("Google Sheets не настроен. Отчеты будут только в базе данных.")
+    
+    def create_test_numbers(self):
+        """Создание тестовой базы из 3 номеров"""
+        cursor = self.db.cursor()
+        
+        test_numbers = [
+            ('+7 (999) 111-22-33', 'ООО "Ромашка"', 'Иван Петров', 'Директор по развитию'),
+            ('+7 (999) 222-33-44', 'ИП "Солнышко"', 'Мария Иванова', 'Менеджер по закупкам'),
+            ('+7 (999) 333-44-55', 'ЗАО "Весна"', 'Алексей Сидоров', 'Руководитель отдела')
         ]
-    },
-    "shikari": {
-        "name": "Shikari (Сервис упоминаний)",
-        "description": "Поиск упоминаний в соцсетях и форумах",
-        "url": "https://shikari.do",
-        "has_leads": True,
-        "steps": [
-            "1. Зарегистрируйтесь на сайте",
-            "2. Настройте ключевые слова для мониторинга",
-            "3. Получайте уведомления о релевантных обсуждениях",
-            "4. Предлагайте свои услуги в комментариях"
-        ]
-    },
-    "kwork": {
-        "name": "Kwork (Биржа фриланса)",
-        "description": "Площадка для продажи услуг",
-        "url": "https://kwork.ru",
-        "has_leads": True,
-        "steps": [
-            "1. Создайте аккаунт фрилансера",
-            "2. Разместите свои услуги (кворки)",
-            "3. Откликайтесь на проекты заказчиков",
-            "4. Получайте заказы и отзывы"
-        ]
-    }
-}
-
-# Готовые связки из таблицы
-BUNDLES = {
-    "shikari_kwork": {
-        "name": "Shikari + Kwork (Таргетинг)",
-        "description": "Находим заказы на Shikari, выполняем через Kwork",
-        "steps": [
-            {
-                "name": "Этап 1: Поиск клиентов",
-                "url": "https://shikari.do/category/internet-marketing?page=1",
-                "instruction": "Ищите запросы на таргетологов"
-            },
-            {
-                "name": "Этап 2: Предложение услуг",
-                "url": "https://kwork.ru/search?query=таргетолог",
-                "instruction": "Предлагайте свои услуги через Kwork"
+        
+        for phone, company, contact, desc in test_numbers:
+            cursor.execute('''
+                INSERT OR IGNORE INTO phone_numbers (phone, company, contact_name, description)
+                VALUES (?, ?, ?, ?)
+            ''', (phone, company, contact, desc))
+        
+        self.db.commit()
+        logger.info(f"Добавлено {len(test_numbers)} тестовых номеров")
+    
+    def get_next_number(self, manager_id):
+        """Получить следующий номер для звонка"""
+        cursor = self.db.cursor()
+        
+        # Ищем номер, который этот менеджер еще не звонил
+        cursor.execute('''
+            SELECT id, phone, company, contact_name, description
+            FROM phone_numbers 
+            WHERE status = 'new' 
+            AND id NOT IN (
+                SELECT id FROM phone_numbers WHERE manager_id = ?
+            )
+            ORDER BY RANDOM()
+            LIMIT 1
+        ''', (manager_id,))
+        
+        number = cursor.fetchone()
+        
+        if number:
+            # Помечаем как "в работе"
+            cursor.execute('''
+                UPDATE phone_numbers 
+                SET status = 'in_progress', manager_id = ?
+                WHERE id = ?
+            ''', (manager_id, number[0]))
+            self.db.commit()
+            
+            # Получаем скрипт для звонка
+            script = self.get_call_script()
+            
+            return {
+                'id': number[0],
+                'phone': number[1],
+                'company': number[2],
+                'contact': number[3],
+                'description': number[4],
+                'script': script
             }
-        ]
-    },
-    "shikari_aiup": {
-        "name": "Shikari + AI-Up (Перехват заявок)",
-        "description": "Находим клиентов на Shikari, подключаем AI-Up",
-        "steps": [
-            {
-                "name": "Этап 1: Поиск маркетологов",
-                "url": "https://shikari.do/category/internet-marketing?page=1",
-                "instruction": "Находите обсуждения про маркетинг"
-            },
-            {
-                "name": "Этап 2: Внедрение AI-Up",
-                "url": "https://ai-up.ru?ref=f45258cb-162e-4afc-a6b3-e4bb3a373a19",
-                "instruction": "Предлагайте сервис перехвата заявок"
-            }
-        ]
-    }
-}
+        
+        return None
+    
+    def get_call_script(self):
+        """Получить скрипт для звонка"""
+        return """
+📞 СКРИПТ ДЛЯ ЗВОНКА:
 
-def get_main_keyboard():
-    """Клавиатура главного меню"""
-    keyboard = VkKeyboard(one_time=False)
-    
-    keyboard.add_button('📊 Партнерские программы', color=VkKeyboardColor.PRIMARY)
-    keyboard.add_line()
-    keyboard.add_button('🚀 Готовые связки', color=VkKeyboardColor.POSITIVE)
-    keyboard.add_line()
-    keyboard.add_button('📋 Мои проекты', color=VkKeyboardColor.SECONDARY)
-    keyboard.add_button('❓ Помощь', color=VkKeyboardColor.SECONDARY)
-    
-    return keyboard.get_keyboard()
+1. Приветствие:
+"Добрый день! Это [ваше имя] из сервиса удаленного телемаркетинга. Я по поводу развития вашего бизнеса."
 
-def get_programs_keyboard():
-    """Клавиатура выбора партнерских программ"""
-    keyboard = VkKeyboard(one_time=False)
-    
-    keyboard.add_button('🤖 AI-Up', color=VkKeyboardColor.PRIMARY)
-    keyboard.add_button('🎯 Shikari', color=VkKeyboardColor.PRIMARY)
-    keyboard.add_line()
-    keyboard.add_button('💼 Kwork', color=VkKeyboardColor.PRIMARY)
-    keyboard.add_button('👨‍🏫 Репетиторы', color=VkKeyboardColor.PRIMARY)
-    keyboard.add_line()
-    keyboard.add_button('◀️ Назад', color=VkKeyboardColor.NEGATIVE)
-    
-    return keyboard.get_keyboard()
+2. Уточнение:
+"Правильно ли я понимаю, что вы [должность] в компании [название компании]?"
 
-def get_bundles_keyboard():
-    """Клавиатура выбора связок"""
-    keyboard = VkKeyboard(one_time=False)
-    
-    keyboard.add_button('🎯 Таргетинг (Shikari+Kwork)', color=VkKeyboardColor.POSITIVE)
-    keyboard.add_line()
-    keyboard.add_button('🤖 Перехват заявок', color=VkKeyboardColor.POSITIVE)
-    keyboard.add_line()
-    keyboard.add_button('👨‍🏫 Онлайн-репетиторы', color=VkKeyboardColor.POSITIVE)
-    keyboard.add_line()
-    keyboard.add_button('◀️ Назад', color=VkKeyboardColor.NEGATIVE)
-    
-    return keyboard.get_keyboard()
+3. Предложение:
+"Мы помогаем компаниям увеличивать продажи через удаленных специалистов. 
+Можем выделить вам подготовленного менеджера по цене от 500 руб/час."
 
-def get_step_keyboard(step_num, total_steps, bundle_id=None):
-    """Клавиатура для пошагового прохождения"""
-    keyboard = VkKeyboard(one_time=False)
+4. Возражения:
+"Понимаю, что это ново. Давайте проведем тестовый день - 2 часа работы за наш счет.
+Если понравится - продолжим, если нет - просто поблагодарите."
+
+5. Завершение:
+"Когда вам удобно провести короткую 10-минутную встречу для деталей?"
+"""
     
-    if step_num < total_steps:
-        keyboard.add_button('✅ Шаг выполнен', color=VkKeyboardColor.POSITIVE)
-        keyboard.add_button('➡️ Следующий шаг', color=VkKeyboardColor.PRIMARY)
-    else:
-        keyboard.add_button('🏁 Завершить проект', color=VkKeyboardColor.POSITIVE)
+    def save_report(self, manager_id, number_id, result, comment=""):
+        """Сохранить отчет о звонке"""
+        cursor = self.db.cursor()
+        
+        # Получаем информацию о номере
+        cursor.execute('''
+            SELECT phone, company, contact_name 
+            FROM phone_numbers WHERE id = ?
+        ''', (number_id,))
+        
+        number_info = cursor.fetchone()
+        
+        if not number_info:
+            return "Ошибка: номер не найден"
+        
+        phone, company, contact = number_info
+        
+        # Обновляем статус номера
+        cursor.execute('''
+            UPDATE phone_numbers 
+            SET status = ?, call_result = ?, call_time = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (result, comment, number_id))
+        
+        # Обновляем статистику менеджера
+        cursor.execute('''
+            INSERT OR REPLACE INTO managers 
+            (user_id, calls_made, successful_calls, last_active)
+            VALUES (?, 
+                COALESCE((SELECT calls_made FROM managers WHERE user_id = ?), 0) + 1,
+                COALESCE((SELECT successful_calls FROM managers WHERE user_id = ?), 0) + ?,
+                CURRENT_TIMESTAMP
+            )
+        ''', (manager_id, manager_id, manager_id, 1 if 'успешно' in result.lower() else 0))
+        
+        self.db.commit()
+        
+        # Отправляем в Google Sheets
+        self.save_to_google_sheets(
+            manager_id, phone, company, contact, result, comment
+        )
+        
+        return "Отчет сохранен!"
     
-    keyboard.add_line()
-    if bundle_id:
-        keyboard.add_button('📋 Все шаги', color=VkKeyboardColor.SECONDARY)
-    keyboard.add_button('◀️ Назад', color=VkKeyboardColor.NEGATIVE)
+    def save_to_google_sheets(self, manager_id, phone, company, contact, result, comment):
+        """Сохранить отчет в Google Sheets"""
+        if not self.sheet:
+            return
+        
+        try:
+            self.sheet.append_row([
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                manager_id,
+                phone,
+                company,
+                contact,
+                result,
+                comment
+            ])
+            logger.info(f"Отчет сохранен в Google Sheets")
+        except Exception as e:
+            logger.error(f"Ошибка сохранения в Google Sheets: {e}")
     
-    return keyboard.get_keyboard()
+    def get_manager_stats(self, manager_id):
+        """Получить статистику менеджера"""
+        cursor = self.db.cursor()
+        
+        cursor.execute('''
+            SELECT calls_made, successful_calls 
+            FROM managers WHERE user_id = ?
+        ''', (manager_id,))
+        
+        stats = cursor.fetchone()
+        
+        if stats:
+            calls_made, successful = stats
+            success_rate = (successful / calls_made * 100) if calls_made > 0 else 0
+            
+            return f"""
+📊 Ваша статистика:
+━━━━━━━━━━━━━━━━━
+Всего звонков: {calls_made}
+✅ Успешных: {successful}
+📈 Конверсия: {success_rate:.1f}%
+━━━━━━━━━━━━━━━━━
+Ваш ID: {manager_id}
+"""
+        else:
+            return "У вас еще нет статистики. Сделайте первый звонок!"
+    
+    def get_all_reports(self):
+        """Получить все отчеты (для админа)"""
+        cursor = self.db.cursor()
+        
+        cursor.execute('''
+            SELECT p.phone, p.company, p.contact_name, 
+                   p.call_result, p.call_time, m.user_id
+            FROM phone_numbers p
+            LEFT JOIN managers m ON p.manager_id = m.user_id
+            WHERE p.status != 'new'
+            ORDER BY p.call_time DESC
+        ''')
+        
+        return cursor.fetchall()
+
+# Инициализация бота
+bot = TelemarketingBot()
 
 def main():
     if not GROUP_TOKEN or not GROUP_ID:
-        logger.error("Не установлены переменные окружения!")
+        logger.error("Не установлены переменные окружения VK_GROUP_TOKEN и VK_GROUP_ID!")
         return
     
     try:
@@ -161,7 +298,7 @@ def main():
         vk = vk_session.get_api()
         longpoll = VkBotLongPoll(vk_session, GROUP_ID)
         
-        logger.info(f"Бот запущен для группы ID: {GROUP_ID}")
+        logger.info(f"Бот телемаркетинга запущен для группы ID: {GROUP_ID}")
         
         for event in longpoll.listen():
             if event.type == VkBotEventType.MESSAGE_NEW:
@@ -169,234 +306,181 @@ def main():
                 user_id = message['from_id']
                 text = message['text'].lower() if 'text' in message else ''
                 
-                # Обработка нажатий кнопок
-                if 'payload' in message and message['payload']:
-                    try:
-                        payload = json.loads(message['payload'])
-                        command = payload.get('command', '')
-                    except:
-                        command = ''
-                else:
-                    command = text
-                
                 logger.info(f"Сообщение от {user_id}: {text}")
                 
-                # Инициализация состояния пользователя
-                if user_id not in user_states:
-                    user_states[user_id] = 'main'
-                    user_projects[user_id] = {}
-                
-                current_state = user_states[user_id]
-                
-                # Обработка команд
-                if command in ['начать', 'привет', 'start', 'меню']:
+                # Команда: начало работы
+                if text in ['начать', 'старт', 'работа', 'start']:
+                    keyboard = VkKeyboard(one_time=False)
+                    keyboard.add_button('📞 Получить номер', color=VkKeyboardColor.POSITIVE)
+                    keyboard.add_line()
+                    keyboard.add_button('📊 Моя статистика', color=VkKeyboardColor.PRIMARY)
+                    keyboard.add_button('❓ Помощь', color=VkKeyboardColor.SECONDARY)
+                    
                     response = (
-                        "👋 Привет! Я бот для удаленной работы и телемаркетинга!\n"
-                        "Я помогу тебе запустить проекты через партнерские программы.\n\n"
-                        "Выбери действие:"
+                        "🏢 Добро пожаловать в систему телемаркетинга!\n\n"
+                        "Я помогу вам начать зарабатывать на удаленных звонках.\n\n"
+                        "📞 **Как это работает:**\n"
+                        "1. Получаете номер компании для звонка\n"
+                        "2. Звоните по готовому скрипту\n"
+                        "3. Отправляете отчет о результате\n"
+                        "4. Получаете новые номера\n\n"
+                        "💰 **Выплаты:** каждый успешный контакт = 50 руб\n\n"
+                        "Нажмите '📞 Получить номер' для начала!"
                     )
+                    
                     vk.messages.send(
                         user_id=user_id,
                         message=response,
-                        keyboard=get_main_keyboard(),
+                        keyboard=keyboard.get_keyboard(),
                         random_id=0
                     )
-                    user_states[user_id] = 'main'
                 
-                elif command == '📊 партнерские программы':
-                    response = (
-                        "📊 **Доступные партнерские программы:**\n\n"
-                        "🤖 **AI-Up** - перехват заявок с сайтов\n"
-                        "🎯 **Shikari** - поиск упоминаний в сети\n"
-                        "💼 **Kwork** - биржа фриланса\n"
-                        "👨‍🏫 **Репетиторы** - онлайн-обучение\n\n"
-                        "Выбери программу для получения пошаговой инструкции:"
-                    )
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=response,
-                        keyboard=get_programs_keyboard(),
-                        random_id=0
-                    )
-                    user_states[user_id] = 'programs'
-                
-                elif command == '🚀 готовые связки':
-                    response = (
-                        "🚀 **Готовые бизнес-связки:**\n\n"
-                        "1. **🎯 Таргетинг** - Shikari + Kwork\n"
-                        "   • Находим клиентов на Shikari\n"
-                        "   • Выполняем заказы через Kwork\n\n"
-                        "2. **🤖 Перехват заявок** - Shikari + AI-Up\n"
-                        "   • Ищем маркетологов на Shikari\n"
-                        "   • Предлагаем сервис AI-Up\n\n"
-                        "Выбери связку для запуска:"
-                    )
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=response,
-                        keyboard=get_bundles_keyboard(),
-                        random_id=0
-                    )
-                    user_states[user_id] = 'bundles'
-                
-                elif command == '📋 мои проекты':
-                    if user_id in user_projects and user_projects[user_id]:
-                        projects_text = "📋 **Ваши активные проекты:**\n\n"
-                        for project_name, data in user_projects[user_id].items():
-                            progress = data.get('progress', 0)
-                            total = data.get('total_steps', 1)
-                            projects_text += f"• {project_name}: {progress}/{total} шагов\n"
+                # Команда: получить номер
+                elif 'получить номер' in text or text == 'номер':
+                    number_data = bot.get_next_number(user_id)
+                    
+                    if number_data:
+                        keyboard = VkKeyboard(one_time=False)
+                        keyboard.add_button('✅ Успешный звонок', color=VkKeyboardColor.POSITIVE)
+                        keyboard.add_button('📅 Перезвонить', color=VkKeyboardColor.PRIMARY)
+                        keyboard.add_line()
+                        keyboard.add_button('❌ Отказ', color=VkKeyboardColor.NEGATIVE)
+                        keyboard.add_button('🚫 Неверный номер', color=VkKeyboardColor.SECONDARY)
+                        
+                        response = (
+                            f"📞 **НОМЕР ДЛЯ ЗВОНКА:**\n"
+                            f"━━━━━━━━━━━━━━━━━\n"
+                            f"🏢 Компания: {number_data['company']}\n"
+                            f"👤 Контакт: {number_data['contact']}\n"
+                            f"📱 Телефон: {number_data['phone']}\n"
+                            f"📝 Должность: {number_data['description']}\n"
+                            f"━━━━━━━━━━━━━━━━━\n\n"
+                            f"{number_data['script']}\n\n"
+                            f"**После звонка нажмите одну из кнопок ниже:**"
+                        )
                     else:
-                        projects_text = "У вас пока нет активных проектов.\nВыберите партнерскую программу или связку в меню."
-                    
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=projects_text,
-                        keyboard=get_main_keyboard(),
-                        random_id=0
-                    )
-                
-                elif command == '❓ помощь':
-                    response = (
-                        "❓ **Как пользоваться ботом:**\n\n"
-                        "1. Выберите **Партнерские программы** - отдельные сервисы\n"
-                        "2. Выберите **Готовые связки** - пошаговые бизнес-цепочки\n"
-                        "3. Проходите шаги по инструкции\n"
-                        "4. Используйте реферальные ссылки для регистрации\n"
-                        "5. Отслеживайте прогресс в **Мои проекты**\n\n"
-                        "Все ссылки партнерские - вы поддерживаете разработчика!"
-                    )
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=response,
-                        keyboard=get_main_keyboard(),
-                        random_id=0
-                    )
-                
-                # Обработка выбора партнерских программ
-                elif command in ['🤖 ai-up', 'ai-up']:
-                    program = PARTNER_PROGRAMS['ai-up']
-                    response = (
-                        f"🤖 **{program['name']}**\n\n"
-                        f"{program['description']}\n\n"
-                        f"🔗 Реферальная ссылка:\n{program['url']}\n\n"
-                        f"📋 **Пошаговая инструкция:**\n"
-                        + "\n".join(program['steps']) + "\n\n"
-                        f"Нажми '✅ Шаг выполнен' после каждого этапа."
-                    )
-                    
-                    # Сохраняем проект пользователя
-                    if 'ai-up' not in user_projects[user_id]:
-                        user_projects[user_id]['ai-up'] = {
-                            'current_step': 1,
-                            'total_steps': len(program['steps']),
-                            'progress': 0
-                        }
+                        response = "😔 На данный момент нет доступных номеров.\nПопробуйте позже или напишите админу."
+                        keyboard = None
                     
                     vk.messages.send(
                         user_id=user_id,
                         message=response,
-                        keyboard=get_step_keyboard(1, len(program['steps'])),
+                        keyboard=keyboard.get_keyboard() if keyboard else None,
                         random_id=0
                     )
-                    user_states[user_id] = 'program_aiup'
                 
-                elif command in ['🎯 shikari', 'shikari']:
-                    program = PARTNER_PROGRAMS['shikari']
-                    response = (
-                        f"🎯 **{program['name']}**\n\n"
-                        f"{program['description']}\n\n"
-                        f"🔗 Ссылка: {program['url']}\n\n"
-                        f"📋 **Пошаговая инструкция:**\n"
-                        + "\n".join(program['steps'])
-                    )
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=response,
-                        keyboard=get_step_keyboard(1, len(program['steps'])),
-                        random_id=0
-                    )
-                    user_states[user_id] = 'program_shikari'
-                
-                # Обработка выбора связок
-                elif 'таргетинг' in command or 'shikari+kwork' in command:
-                    bundle = BUNDLES['shikari_kwork']
-                    response = (
-                        f"🎯 **{bundle['name']}**\n\n"
-                        f"{bundle['description']}\n\n"
-                        f"🔗 **Этап 1: {bundle['steps'][0]['name']}**\n"
-                        f"Ссылка: {bundle['steps'][0]['url']}\n"
-                        f"Инструкция: {bundle['steps'][0]['instruction']}"
-                    )
+                # Команда: отчет о звонке
+                elif any(cmd in text for cmd in ['успешный', 'перезвонить', 'отказ', 'неверный']):
+                    # Получаем последний выданный номер
+                    cursor = bot.db.cursor()
+                    cursor.execute('''
+                        SELECT id FROM phone_numbers 
+                        WHERE manager_id = ? AND status = 'in_progress'
+                        ORDER BY id DESC LIMIT 1
+                    ''', (user_id,))
                     
-                    # Сохраняем проект связки
-                    user_projects[user_id]['shikari_kwork'] = {
-                        'current_step': 1,
-                        'total_steps': len(bundle['steps']),
-                        'progress': 0
-                    }
+                    last_number = cursor.fetchone()
                     
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=response,
-                        keyboard=get_step_keyboard(1, len(bundle['steps']), 'shikari_kwork'),
-                        random_id=0
-                    )
-                    user_states[user_id] = 'bundle_shikari_kwork'
+                    if last_number:
+                        number_id = last_number[0]
+                        
+                        if 'успешный' in text:
+                            result = 'success'
+                            comment = "Клиент заинтересован, договорились о встрече"
+                        elif 'перезвонить' in text:
+                            result = 'callback'
+                            comment = "Клиент занят, нужно перезвонить позже"
+                        elif 'отказ' in text:
+                            result = 'rejected'
+                            comment = "Клиент не заинтересован"
+                        else:
+                            result = 'invalid'
+                            comment = "Некорректный номер/неверные данные"
+                        
+                        # Сохраняем отчет
+                        report_result = bot.save_report(user_id, number_id, result, comment)
+                        
+                        # Показываем статистику
+                        stats = bot.get_manager_stats(user_id)
+                        
+                        keyboard = VkKeyboard(one_time=False)
+                        keyboard.add_button('📞 Следующий номер', color=VkKeyboardColor.POSITIVE)
+                        keyboard.add_button('📊 Моя статистика', color=VkKeyboardColor.PRIMARY)
+                        
+                        response = (
+                            f"✅ {report_result}\n\n"
+                            f"{stats}\n\n"
+                            f"Хотите получить следующий номер?"
+                        )
+                        
+                        vk.messages.send(
+                            user_id=user_id,
+                            message=response,
+                            keyboard=keyboard.get_keyboard(),
+                            random_id=0
+                        )
+                    else:
+                        response = "Не найден активный номер для отчета.\nПолучите новый номер через меню."
+                        vk.messages.send(user_id=user_id, message=response, random_id=0)
                 
-                # Обработка пошаговых действий
-                elif '➡️ следующий шаг' in command.lower():
-                    if user_states[user_id] == 'bundle_shikari_kwork':
-                        bundle = BUNDLES['shikari_kwork']
-                        if user_projects[user_id]['shikari_kwork']['current_step'] < len(bundle['steps']):
-                            next_step = user_projects[user_id]['shikari_kwork']['current_step']
-                            step_data = bundle['steps'][next_step]
+                # Команда: статистика
+                elif 'статистика' in text or 'стата' in text:
+                    stats = bot.get_manager_stats(user_id)
+                    vk.messages.send(user_id=user_id, message=stats, random_id=0)
+                
+                # Команда: помощь
+                elif 'помощь' in text or 'команды' in text:
+                    response = (
+                        "❓ **КОМАНДЫ БОТА:**\n\n"
+                        "📞 **Получить номер** - получить номер для звонка\n"
+                        "📊 **Моя статистика** - ваши результаты\n"
+                        "❓ **Помощь** - это сообщение\n\n"
+                        "**После звонка:**\n"
+                        "✅ Успешный звонок - клиент заинтересован\n"
+                        "📅 Перезвонить - клиент занят\n"
+                        "❌ Отказ - клиент отказался\n"
+                        "🚫 Неверный номер - некорректные данные\n\n"
+                        "💰 **Оплата:** 50 руб за каждый успешный контакт\n"
+                        "Выплаты по понедельникам на карту/кошелек."
+                    )
+                    vk.messages.send(user_id=user_id, message=response, random_id=0)
+                
+                # Админ команды (для вас)
+                elif text.startswith('/admin'):
+                    # Ваш ID ВК для проверки прав
+                    admin_ids = [123456789]  # Замените на ваш ID ВК
+                    
+                    if user_id in admin_ids:
+                        if 'отчеты' in text:
+                            reports = bot.get_all_reports()
+                            
+                            if reports:
+                                report_text = "📋 **ВСЕ ОТЧЕТЫ:**\n\n"
+                                for i, (phone, company, contact, result, time, mgr_id) in enumerate(reports[:10], 1):
+                                    report_text += f"{i}. 📞 {phone}\n   🏢 {company}\n   👤 {contact}\n   ✅ {result}\n   ⏰ {time}\n   👨‍💼 ID: {mgr_id}\n\n"
+                            else:
+                                report_text = "Пока нет отчетов."
+                            
+                            vk.messages.send(user_id=user_id, message=report_text, random_id=0)
+                        elif 'база' in text:
+                            cursor = bot.db.cursor()
+                            cursor.execute('SELECT COUNT(*) FROM phone_numbers')
+                            count = cursor.fetchone()[0]
+                            
+                            cursor.execute('SELECT COUNT(*) FROM phone_numbers WHERE status != "new"')
+                            called = cursor.fetchone()[0]
                             
                             response = (
-                                f"🔗 **Этап {next_step + 1}: {step_data['name']}**\n\n"
-                                f"Ссылка: {step_data['url']}\n"
-                                f"Инструкция: {step_data['instruction']}"
+                                f"📊 **СТАТИСТИКА БАЗЫ:**\n\n"
+                                f"Всего номеров: {count}\n"
+                                f"Прозвонено: {called}\n"
+                                f"Осталось: {count - called}\n\n"
+                                f"Google Sheets: {'подключен' if bot.sheet else 'не подключен'}"
                             )
-                            
-                            user_projects[user_id]['shikari_kwork']['current_step'] += 1
-                            user_projects[user_id]['shikari_kwork']['progress'] += 1
-                            
-                            vk.messages.send(
-                                user_id=user_id,
-                                message=response,
-                                keyboard=get_step_keyboard(
-                                    next_step + 1, 
-                                    len(bundle['steps']), 
-                                    'shikari_kwork'
-                                ),
-                                random_id=0
-                            )
-                
-                elif '◀️ назад' in command.lower():
-                    response = "Главное меню:"
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=response,
-                        keyboard=get_main_keyboard(),
-                        random_id=0
-                    )
-                    user_states[user_id] = 'main'
-                
-                # Обработка обычных сообщений
-                elif text:
-                    response = (
-                        "Выберите действие через меню кнопок 👇\n"
-                        "Или напишите 'меню' для показа клавиатуры."
-                    )
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=response,
-                        keyboard=get_main_keyboard(),
-                        random_id=0
-                    )
+                            vk.messages.send(user_id=user_id, message=response, random_id=0)
     
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        logger.error(f"Ошибка в боте: {e}")
 
 if __name__ == '__main__':
     main()
