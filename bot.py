@@ -967,7 +967,7 @@ def get_bundles_keyboard():
     keyboard.add_button('🔽 Еще связки (AI*)', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
     
-    keyboard.add_button('◀️ Назад', color=VkKeyboardColor.NEGATIVE)
+    keyboard.add_button('🔙 В главное меню', color=VkKeyboardColor.NEGATIVE)
     
     return keyboard.get_keyboard()
 
@@ -994,7 +994,7 @@ def get_bundles_keyboard_page2():
     
     keyboard.add_button('🔼 Основные связки', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
-    keyboard.add_button('◀️ Назад', color=VkKeyboardColor.NEGATIVE)
+    keyboard.add_button('🔙 В главное меню', color=VkKeyboardColor.NEGATIVE)
     
     return keyboard.get_keyboard()
 
@@ -1014,14 +1014,20 @@ def get_bundle_action_keyboard(bundle_id, step_number, total_steps, has_ref_link
     
     keyboard.add_line()
     keyboard.add_button('📋 Все шаги связки', color=VkKeyboardColor.SECONDARY)
-    keyboard.add_button('◀️ К выбору связки', color=VkKeyboardColor.NEGATIVE)
+    keyboard.add_button('🔙 В главное меню', color=VkKeyboardColor.NEGATIVE)
     
     return keyboard.get_keyboard()
 
 def get_back_keyboard():
     """Простая кнопка назад"""
     keyboard = VkKeyboard(one_time=False)
-    keyboard.add_button('◀️ Назад', color=VkKeyboardColor.NEGATIVE)
+    keyboard.add_button('🔙 В главное меню', color=VkKeyboardColor.NEGATIVE)
+    return keyboard.get_keyboard()
+
+def get_back_to_bundles_keyboard():
+    """Кнопка назад к выбору связки"""
+    keyboard = VkKeyboard(one_time=False)
+    keyboard.add_button('🔙 К выбору связки', color=VkKeyboardColor.NEGATIVE)
     return keyboard.get_keyboard()
 
 # ==================== ТЕКСТОВЫЕ ШАБЛОНЫ ====================
@@ -1086,8 +1092,11 @@ def main():
                         'registration_time': datetime.now()
                     }
                 
-                # Главное меню
-                if text in ['начать', 'старт', 'start', 'меню', 'привет', 'назад']:
+                # УНИФИЦИРОВАННЫЙ ВХОД В ГЛАВНОЕ МЕНЮ
+                if (text in ['начать', 'старт', 'start', 'меню', 'привет', 'назад', 'главное меню', 'главное', 'домой', 'home', 'main'] or 
+                    '🔙 в главное меню' in text or 
+                    'в главное меню' in text):
+                    
                     vk.messages.send(
                         user_id=user_id,
                         message=get_welcome_message(),
@@ -1095,6 +1104,7 @@ def main():
                         random_id=0,
                         dont_parse_links=1
                     )
+                    continue
                 
                 # Кнопка "Начать зарабатывать"
                 elif 'начать зарабатывать' in text:
@@ -1176,6 +1186,18 @@ def main():
                         keyboard=get_back_keyboard(),
                         random_id=0,
                         dont_parse_links=1
+                    )
+                
+                # К выбору связки (специальная кнопка)
+                elif 'к выбору связки' in text:
+                    user_progress[user_id]['current_bundle'] = None
+                    user_progress[user_id]['current_step'] = 0
+                    
+                    vk.messages.send(
+                        user_id=user_id,
+                        message="Выбери связку для выполнения:",
+                        keyboard=get_bundles_keyboard(),
+                        random_id=0
                     )
                 
                 # Обработка выбора связки
@@ -1287,18 +1309,6 @@ def main():
                             keyboard=keyboard,
                             random_id=0
                         )
-                
-                # К выбору связки
-                elif 'к выбору связки' in text:
-                    user_progress[user_id]['current_bundle'] = None
-                    user_progress[user_id]['current_step'] = 0
-                    
-                    vk.messages.send(
-                        user_id=user_id,
-                        message="Выбери связку для выполнения:",
-                        keyboard=get_bundles_keyboard(),
-                        random_id=0
-                    )
                 
                 # Перейти по ссылке
                 elif 'перейти по ссылке' in text:
