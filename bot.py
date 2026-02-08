@@ -1326,8 +1326,8 @@ def main():
                         dont_parse_links=1
                     )
 
-                # Оформить ИП (строгая проверка)
-                elif text in ['оформить ип', 'ип']:
+                # Оформить ИП (ИСПРАВЛЕННАЯ ПРОВЕРКА)
+                elif any(ip_text in text for ip_text in ['оформить ип', 'ип']):
                     vk.messages.send(
                         user_id=user_id,
                         message=IP_MESSAGE,
