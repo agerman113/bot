@@ -485,8 +485,17 @@ BUNDLES = {
                 "title": "Отправка СВОИХ реферальных ссылок",
                 "description": "Отправляем СВОИ реферальные ссылки на сервисы Vsesdal.com и Studwork.ru. Используйте свои ссылки из личных кабинетов!",
                 "action": "Используйте СВОИ партнерские ссылки на образовательные сервисы",
-                "ref_link": None,
-                "ref_text": "ВАЖНО: Используйте СВОИ реферальные ссылки из личных кабинетов! (https://vsesdal.com/about-bonuses, https://studwork.ru/partner-landing)"
+                "ref_links": [
+                    {
+                        "text": "Vsesdal.com - помощь студентам",
+                        "url": "https://vsesdal.com/about-bonuses"
+                    },
+                    {
+                        "text": "Studwork.ru - партнерская программа",
+                        "url": "https://studwork.ru/partner-landing"
+                    }
+                ],
+                "note": "ВАЖНО: Используйте СВОИ реферальные ссылки из личных кабинетов! Если нет своих ссылок, сначала зарегистрируйтесь в партнерских программах этих сервисов."
             },
             {
                 "number": 6,
