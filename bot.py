@@ -158,10 +158,10 @@ BUNDLES = {
             {
                 "number": 5,
                 "title": "Отправка СВОЕЙ реферальной ссылки на Foxford",
-                "description": "Отправляем СВОЮ реферальную ссылку на партнерскую программу Foxford. Если нет своей ссылки, создайте ее в разделе 'Партнерская программа' на сайте Foxford.",
+                "description": "Отправляем СВОЮ реферальную ссылку на партнерскую программу Foxford (пример: https://partner.foxford.ru/webmaster). Если нет своей ссылки, создайте ее в разделе 'Партнерская программа' на сайте Foxford.",
                 "action": "Используйте СВОЮ партнерскую ссылку для получения комиссии",
                 "ref_link": None,
-                "ref_text": "ВАЖНО: Используйте СВОЮ реферальную ссылку из личного кабинета Foxford!"
+                "ref_text": "ВАЖНО: Используйте СВОЮ реферальную ссылку из личного кабинета Foxford! Пример ссылки: https://partner.foxford.ru/webmaster"
             },
             {
                 "number": 6,
@@ -1366,14 +1366,15 @@ def main():
                 elif any(phrase in text for phrase in [
                     's-репетиторы-f', 's-k-таргетологи-k', 's-таргетологи-a',
                     'ayf-таргетологи-s', 'k-b2b-a', 's-дипломы-vs',
-                    's-сантехники-ya', 'consenta-k-a-e', 'g-consenta-k-a-e',
+                    'с-дипломы-vs', 'дипломы-vs', 's-сантехники-ya', 
+                    'consenta-k-a-e', 'g-consenta-k-a-e',
                     'vps+упоминания', 'vps+перехват', 'email+перехват',
                     'оферы+упоминания', 'оферы+email', 'vps+фриланс', 'ai*:'
                 ]):
                     # Определяем выбранную связку
                     bundle_id = None
                     
-                    if 's-репетиторы-f' in text:
+                    if 's-репетиторы-f' in text or 'репетиторы-f' in text:
                         bundle_id = 1
                     elif 's-k-таргетологи-k' in text:
                         bundle_id = 2
@@ -1383,7 +1384,7 @@ def main():
                         bundle_id = 4
                     elif 'k-b2b-a' in text:
                         bundle_id = 5
-                    elif 's-дипломы-vs' in text:
+                    elif 's-дипломы-vs' in text or 'с-дипломы-vs' in text or 'дипломы-vs' in text:
                         bundle_id = 6
                     elif 's-сантехники-ya' in text:
                         bundle_id = 7
