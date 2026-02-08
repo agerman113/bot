@@ -14,14 +14,13 @@ logger = logging.getLogger(__name__)
 GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
 GROUP_ID = os.getenv('VK_GROUP_ID')
 
-# Ваша ссылка на регистрацию ИП (обновленная)
+# Ваша ссылка на регистрацию ИП
 IP_LINK = "https://vk.cc/cU6ZTa"
 
 # Хранилище прогресса пользователей
 user_progress = {}
 
 # ==================== ДАННЫЕ ИЗ ТАБЛИЦЫ ====================
-
 ADVANTAGES = [
     "✅ Сложная многоуровневая партнерская система",
     "✅ Без занудных обучений и вебинаров",
@@ -36,7 +35,7 @@ ADVANTAGES = [
 IP_MESSAGE = f"""📝 *ОФОРМЛЕНИЕ ИП ДЛЯ СЕРЬЕЗНОГО ЗАРАБОТКА*
 
 🎯 *ПОЧЕМУ ЭТО ВАЖНО:*
-Когда твой доход превышает 30-50 тыс. рублей в месяц, 
+Когда твой доход превышает 30-50 тыс. рублей в месяц,
 оформление ИП становится необходимостью для легальной работы.
 
 ✨ *ПРЕИМУЩЕСТВА ИП:*
@@ -52,7 +51,7 @@ IP_MESSAGE = f"""📝 *ОФОРМЛЕНИЕ ИП ДЛЯ СЕРЬЕЗНОГО З�
 • Ограничиваешь свой рост
 
 🔗 *МОЯ ПАРТНЕРСКАЯ ССЫЛКА:*
-Для оформления ИП я сотрудничаю с проверенным сервисом. 
+Для оформления ИП я сотрудничаю с проверенным сервисом.
 Переходи по ссылке ниже, чтобы получить мою партнерскую скидку:
 
 [Ссылка на регистрацию ИП]({IP_LINK})
@@ -65,7 +64,7 @@ IP_MESSAGE = f"""📝 *ОФОРМЛЕНИЕ ИП ДЛЯ СЕРЬЕЗНОГО З�
 5. Получи документы на email
 
 💎 *БОНУС:*
-После оформления ИП напиши мне "ИП готово" — 
+После оформления ИП напиши мне "ИП готово" —
 я дам доступ к эксклюзивным материалам!"""
 
 INFO_MESSAGE = """ℹ️ *ИНФОРМАЦИЯ О ПРОЕКТЕ И ПОДДЕРЖКА*
@@ -76,7 +75,7 @@ INFO_MESSAGE = """ℹ️ *ИНФОРМАЦИЯ О ПРОЕКТЕ И ПОДДЕР
 • Специализация: партнерские программы, телемаркетинг, автоматизация
 
 🤖 *О БОТЕ:*
-Этот бот — часть комплексной системы заработка на партнерских программах. 
+Этот бот — часть комплексной системы заработка на партнерских программах.
 Здесь собраны 15 проверенных связок, которые приносят реальный доход.
 
 📊 *ЧТО ВКЛЮЧЕНО:*
@@ -114,7 +113,7 @@ A: После прохождения 3-х связок и оформления �
 
 ⚡ *НАЧНИТЕ ПРЯМО СЕЙЧАС — ВЫБЕРИТЕ СВЯЗКУ В МЕНЮ!*"""
 
-# 15 связок (9 оригинальных + 6 AI-оптимизированных) с сохранением структуры из таблицы
+# 15 связок (9 оригинальных + 6 AI-оптимизированных)
 BUNDLES = {
     1: {
         "id": "s_repetitory_f",
@@ -173,7 +172,6 @@ BUNDLES = {
             }
         ]
     },
-    
     2: {
         "id": "s_k_targetologi_k",
         "name": "S-K-таргетологи-K",
@@ -240,7 +238,6 @@ BUNDLES = {
             }
         ]
     },
-    
     3: {
         "id": "s_targetologi_a",
         "name": "S-таргетологи-A",
@@ -307,7 +304,6 @@ BUNDLES = {
             }
         ]
     },
-    
     4: {
         "id": "ayf_targetologi_s",
         "name": "AYF-таргетологи-S",
@@ -373,7 +369,6 @@ BUNDLES = {
             }
         ]
     },
-    
     5: {
         "id": "k_b2b_a",
         "name": "K-B2B-A",
@@ -440,7 +435,6 @@ BUNDLES = {
             }
         ]
     },
-    
     6: {
         "id": "s_diplomy_vs",
         "name": "S-дипломы-VS",
@@ -507,7 +501,6 @@ BUNDLES = {
             }
         ]
     },
-    
     7: {
         "id": "s_santehniki_ya",
         "name": "S-сантехники-YA",
@@ -565,7 +558,6 @@ BUNDLES = {
             }
         ]
     },
-    
     8: {
         "id": "consenta_k_a_e",
         "name": "Consenta-K-A-E",
@@ -641,7 +633,6 @@ BUNDLES = {
             }
         ]
     },
-    
     9: {
         "id": "g_consenta_k_a_e",
         "name": "G-Consenta-K-A-E",
@@ -725,9 +716,6 @@ BUNDLES = {
             }
         ]
     },
-    
-    # =========== НОВЫЕ AI-ОПТИМИЗИРОВАННЫЕ СВЯЗКИ (6 шт) ===========
-    
     10: {
         "id": "ai_vps_shikari",
         "name": "AI*: VPS для ботов + сервис упоминаний",
@@ -787,7 +775,6 @@ BUNDLES = {
             }
         ]
     },
-    
     11: {
         "id": "ai_vps_aiup",
         "name": "AI*: VPS для ботов + перехватчик заявок у конкурентов",
@@ -853,7 +840,6 @@ BUNDLES = {
             }
         ]
     },
-    
     12: {
         "id": "ai_notisend_aiup",
         "name": "AI*: Email рассылки + перехватчик заявок у конкурентов",
@@ -919,7 +905,6 @@ BUNDLES = {
             }
         ]
     },
-    
     13: {
         "id": "ai_saleads_shikari",
         "name": "AI*: Партнерские оферы + сервис упоминаний",
@@ -978,7 +963,6 @@ BUNDLES = {
             }
         ]
     },
-    
     14: {
         "id": "ai_saleads_notisend",
         "name": "AI*: Партнерские оферы + email рассылки",
@@ -1037,7 +1021,6 @@ BUNDLES = {
             }
         ]
     },
-    
     15: {
         "id": "ai_vps_kwork",
         "name": "AI*: VPS для ботов + биржа услуг",
@@ -1100,93 +1083,89 @@ BUNDLES = {
 }
 
 # ==================== КЛАВИАТУРЫ ====================
-
 def get_main_keyboard():
     """Главное меню"""
     keyboard = VkKeyboard(one_time=False)
-    
+
     keyboard.add_button('🚀 Начать зарабатывать', color=VkKeyboardColor.POSITIVE)
     keyboard.add_line()
     keyboard.add_button('🎯 Все связки (15 шт)', color=VkKeyboardColor.PRIMARY)
     keyboard.add_button('📝 Оформить ИП', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
     keyboard.add_button('ℹ️ Инфо о проекте', color=VkKeyboardColor.SECONDARY)
-    
+
     return keyboard.get_keyboard()
 
 def get_bundles_keyboard():
     """Выбор связки - первые 8 оригинальных"""
     keyboard = VkKeyboard(one_time=False)
-    
-    # Первые 8 оригинальных связок
+
     keyboard.add_button('👨‍🏫 S-репетиторы-F', color=VkKeyboardColor.POSITIVE)
     keyboard.add_button('🎯 S-K-таргетологи-K', color=VkKeyboardColor.POSITIVE)
     keyboard.add_line()
-    
+
     keyboard.add_button('🤖 S-таргетологи-A', color=VkKeyboardColor.POSITIVE)
     keyboard.add_button('📢 AYF-таргетологи-S', color=VkKeyboardColor.POSITIVE)
     keyboard.add_line()
-    
+
     keyboard.add_button('🏢 K-B2B-A', color=VkKeyboardColor.PRIMARY)
     keyboard.add_button('🎓 S-дипломы-VS', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
-    
+
     keyboard.add_button('🚰 S-сантехники-YA', color=VkKeyboardColor.PRIMARY)
     keyboard.add_button('⚖️ Consenta-K-A-E', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
-    
-    # Кнопка для второй страницы
+
     keyboard.add_button('🔽 Еще связки', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
-    
+
     keyboard.add_button('🔙 В главное меню', color=VkKeyboardColor.NEGATIVE)
-    
+
     return keyboard.get_keyboard()
 
 def get_bundles_keyboard_page2():
     """Вторая страница связок (9-15)"""
     keyboard = VkKeyboard(one_time=False)
-    
-    # Последние оригинальные и AI-связки
+
     keyboard.add_button('🏗️ G-Consenta-K-A-E', color=VkKeyboardColor.PRIMARY)
     keyboard.add_button('🖥️ AI*: VPS+упоминания', color=VkKeyboardColor.POSITIVE)
     keyboard.add_line()
-    
+
     keyboard.add_button('🔍 AI*: VPS+перехват', color=VkKeyboardColor.POSITIVE)
     keyboard.add_button('📬 AI*: Email+перехват', color=VkKeyboardColor.POSITIVE)
     keyboard.add_line()
-    
+
     keyboard.add_button('🎯 AI*: Оферы+упоминания', color=VkKeyboardColor.POSITIVE)
     keyboard.add_button('📧 AI*: Оферы+email', color=VkKeyboardColor.POSITIVE)
     keyboard.add_line()
-    
+
     keyboard.add_button('💻 AI*: VPS+фриланс', color=VkKeyboardColor.POSITIVE)
     keyboard.add_line()
-    
+
     keyboard.add_button('🔼 Основные связки', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
     keyboard.add_button('🔙 В главное меню', color=VkKeyboardColor.NEGATIVE)
-    
+
     return keyboard.get_keyboard()
 
 def get_bundle_action_keyboard(bundle_id, step_number, total_steps, has_ref_link=False):
     """Клавиатура для действий в связке"""
     keyboard = VkKeyboard(one_time=False)
-    
+
     if has_ref_link:
         keyboard.add_button('🔗 Перейти по ссылке', color=VkKeyboardColor.POSITIVE)
         keyboard.add_line()
-    
+
     if step_number < total_steps:
         keyboard.add_button('✅ Шаг выполнен', color=VkKeyboardColor.POSITIVE)
         keyboard.add_button('➡️ Следующий шаг', color=VkKeyboardColor.PRIMARY)
     else:
         keyboard.add_button('🎉 Завершить связку', color=VkKeyboardColor.POSITIVE)
-    
+
     keyboard.add_line()
     keyboard.add_button('📋 Все шаги связки', color=VkKeyboardColor.SECONDARY)
     keyboard.add_button('🔙 К выбору связки', color=VkKeyboardColor.NEGATIVE)
-    
+
     return keyboard.get_keyboard()
 
 def get_back_keyboard():
@@ -1202,15 +1181,14 @@ def get_back_to_bundles_keyboard():
     return keyboard.get_keyboard()
 
 # ==================== ТЕКСТОВЫЕ ШАБЛОНЫ ====================
-
 def get_welcome_message():
     """Приветственное сообщение с преимуществами"""
     advantages_text = "\n".join(ADVANTAGES)
-    
+
     return f"""🌟 *ДОБРО ПОЖАЛОВАТЬ В СИСТЕМУ ПАРТНЕРСКОГО ЗАРАБОТКА* 🌟
 
-Я — твой персональный наставник в мире партнерских программ. 
-Моя цель — помочь тебе начать зарабатывать от 500 до 20 000 рублей в день, 
+Я — твой персональный наставник в мире партнерских программ.
+Моя цель — помочь тебе начать зарабатывать от 500 до 20 000 рублей в день,
 используя готовые схемы и связки.
 
 ✨ *ПРЕИМУЩЕСТВА НАШЕЙ СИСТЕМЫ:*
@@ -1235,25 +1213,24 @@ def get_welcome_message():
 🚀 *ВЫБЕРИ ДЕЙСТВИЕ НИЖЕ ⬇️*"""
 
 # ==================== ОСНОВНОЙ КОД ====================
-
 def main():
     if not GROUP_TOKEN or not GROUP_ID:
         logger.error("Не установлены переменные окружения!")
         return
-    
+
     try:
         vk_session = vk_api.VkApi(token=GROUP_TOKEN)
         vk = vk_session.get_api()
         longpoll = VkBotLongPoll(vk_session, GROUP_ID)
-        
+
         logger.info(f"Бот запущен! ID группы: {GROUP_ID}")
-        
+
         for event in longpoll.listen():
             if event.type == VkBotEventType.MESSAGE_NEW:
                 message = event.obj.message
                 user_id = message['from_id']
                 text = message['text'].lower() if 'text' in message else ''
-                
+
                 # Инициализация пользователя
                 if user_id not in user_progress:
                     user_progress[user_id] = {
@@ -1262,12 +1239,12 @@ def main():
                         'completed_bundles': [],
                         'registration_time': datetime.now()
                     }
-                
+
                 # УНИФИЦИРОВАННЫЙ ВХОД В ГЛАВНОЕ МЕНЮ
-                if (text in ['начать', 'старт', 'start', 'меню', 'привет', 'назад', 'главное меню', 'главное', 'домой', 'home', 'main'] or 
-                    '🔙 в главное меню' in text or 
+                if (text in ['начать', 'старт', 'start', 'меню', 'привет', 'назад', 'главное меню', 'главное', 'домой', 'home', 'main'] or
+                    '🔙 в главное меню' in text or
                     'в главное меню' in text):
-                    
+
                     vk.messages.send(
                         user_id=user_id,
                         message=get_welcome_message(),
@@ -1276,7 +1253,7 @@ def main():
                         dont_parse_links=1
                     )
                     continue
-                
+
                 # Кнопка "Начать зарабатывать"
                 elif 'начать зарабатывать' in text:
                     response = (
@@ -1304,14 +1281,14 @@ def main():
                         "• 💻 AI*: VPS для ботов + биржа фриланса\n\n"
                         "*Какую связку выбираешь?*"
                     )
-                    
+
                     vk.messages.send(
                         user_id=user_id,
                         message=response,
                         keyboard=get_bundles_keyboard(),
                         random_id=0
                     )
-                
+
                 # Все связки (страница 1)
                 elif 'все связки' in text or '15 шт' in text:
                     vk.messages.send(
@@ -1320,7 +1297,7 @@ def main():
                         keyboard=get_bundles_keyboard(),
                         random_id=0
                     )
-                
+
                 # Вторая страница связок
                 elif 'еще связки' in text:
                     vk.messages.send(
@@ -1329,7 +1306,7 @@ def main():
                         keyboard=get_bundles_keyboard_page2(),
                         random_id=0
                     )
-                
+
                 # Назад к основным связкам
                 elif 'основные связки' in text:
                     vk.messages.send(
@@ -1338,7 +1315,7 @@ def main():
                         keyboard=get_bundles_keyboard(),
                         random_id=0
                     )
-                
+
                 # Инфо о проекте
                 elif 'инфо' in text or 'о проекте' in text:
                     vk.messages.send(
@@ -1348,9 +1325,9 @@ def main():
                         random_id=0,
                         dont_parse_links=1
                     )
-                
-                # Оформить ИП
-                elif 'оформить ип' in text or 'ип' in text:
+
+                # Оформить ИП (строгая проверка)
+                elif text in ['оформить ип', 'ип']:
                     vk.messages.send(
                         user_id=user_id,
                         message=IP_MESSAGE,
@@ -1358,32 +1335,35 @@ def main():
                         random_id=0,
                         dont_parse_links=1
                     )
-                
+
                 # К выбору связки
                 elif 'к выбору связки' in text or '🔙 к выбору связки' in text:
                     user_progress[user_id]['current_bundle'] = None
                     user_progress[user_id]['current_step'] = 0
-                    
+
                     vk.messages.send(
                         user_id=user_id,
                         message="Выбери связку для выполнения:",
                         keyboard=get_bundles_keyboard(),
                         random_id=0
                     )
-                
+
                 # Обработка выбора связки
                 elif any(phrase in text for phrase in [
                     's-репетиторы-f', 's-k-таргетологи-k', 's-таргетологи-a',
                     'ayf-таргетологи-s', 'k-b2b-a', 's-дипломы-vs',
-                    'с-дипломы-vs', 'дипломы-vs', 's-сантехники-ya', 
+                    'с-дипломы-vs', 'дипломы-vs', 's-сантехники-ya',
                     'consenta-k-a-e', 'g-consenta-k-a-e',
                     'vps+упоминания', 'vps+перехват', 'email+перехват',
                     'оферы+упоминания', 'оферы+email', 'vps+фриланс', 'ai*:'
                 ]):
                     # Определяем выбранную связку
                     bundle_id = None
-                    
-                    if 's-репетиторы-f' in text or 'репетиторы-f' in text:
+
+                    # Проверяем связку "S-дипломы-VS" в первую очередь
+                    if any(phrase in text for phrase in ['s-дипломы-vs', 'с-дипломы-vs', 'дипломы-vs']):
+                        bundle_id = 6
+                    elif 's-репетиторы-f' in text or 'репетиторы-f' in text:
                         bundle_id = 1
                     elif 's-k-таргетологи-k' in text:
                         bundle_id = 2
@@ -1393,8 +1373,6 @@ def main():
                         bundle_id = 4
                     elif 'k-b2b-a' in text:
                         bundle_id = 5
-                    elif 's-дипломы-vs' in text or 'с-дипломы-vs' in text or 'дипломы-vs' in text:
-                        bundle_id = 6
                     elif 's-сантехники-ya' in text:
                         bundle_id = 7
                     elif 'consenta-k-a-e' in text and 'g-' not in text:
@@ -1413,12 +1391,12 @@ def main():
                         bundle_id = 14
                     elif 'vps+фриланс' in text or 'ai*: vps для ботов + биржа фриланса' in text:
                         bundle_id = 15
-                    
+
                     if bundle_id and bundle_id in BUNDLES:
                         bundle = BUNDLES[bundle_id]
                         user_progress[user_id]['current_bundle'] = bundle_id
                         user_progress[user_id]['current_step'] = 1
-                        
+
                         # Показываем информацию о связке
                         response = (
                             f"{bundle['emoji']} *{bundle['name']}*\n"
@@ -1430,11 +1408,11 @@ def main():
                             f"📋 *ВСЕГО ШАГОВ: {len(bundle['steps'])}*\n\n"
                             f"Готов начать? Переходим к первому шагу!"
                         )
-                        
+
                         # Показываем первый шаг
                         step = bundle['steps'][0]
                         has_ref_link = step.get('ref_link') is not None or step.get('ref_links') is not None
-                        
+
                         step_response = (
                             f"🚀 *ШАГ {step['number']}: {step['title']}*\n"
                             f"──────────────────\n"
@@ -1442,40 +1420,40 @@ def main():
                             f"📌 *ТВОЕ ДЕЙСТВИЕ:*\n"
                             f"{step['action']}"
                         )
-                        
+
                         if step.get('note'):
                             step_response += f"\n\n📝 *ПРИМЕЧАНИЕ:* {step['note']}"
-                        
+
                         if step.get('ref_text'):
                             step_response += f"\n\n🔗 *ССЫЛКА:* {step['ref_text']}"
-                        
+
                         keyboard = get_bundle_action_keyboard(
                             bundle_id, 1, len(bundle['steps']), has_ref_link
                         )
-                        
+
                         vk.messages.send(
                             user_id=user_id,
                             message=response,
                             random_id=0
                         )
-                        
+
                         vk.messages.send(
                             user_id=user_id,
                             message=step_response,
                             keyboard=keyboard,
                             random_id=0
                         )
-                
+
                 # Перейти по ссылке
                 elif 'перейти по ссылке' in text:
                     bundle_id = user_progress[user_id]['current_bundle']
                     current_step = user_progress[user_id]['current_step'] - 1
-                    
+
                     if bundle_id and bundle_id in BUNDLES:
                         bundle = BUNDLES[bundle_id]
                         if current_step >= 0 and current_step < len(bundle['steps']):
                             step = bundle['steps'][current_step]
-                            
+
                             if step.get('ref_links'):
                                 response = "🔗 *ДОСТУПНЫЕ ССЫЛКИ:*\n\n"
                                 for link in step['ref_links']:
@@ -1484,52 +1462,52 @@ def main():
                                 response = f"🔗 *ТВОЯ ССЫЛКА:*\n{step['ref_link']}"
                             else:
                                 response = "На этом шаге нет ссылки для перехода. Переходи к следующему шагу!"
-                            
+
                             response += "\n\n*После перехода вернись в бота!*"
-                            
+
                             vk.messages.send(
                                 user_id=user_id,
                                 message=response,
                                 random_id=0,
                                 dont_parse_links=1
                             )
-                
+
                 # Шаг выполнен
                 elif 'шаг выполнен' in text:
                     bundle_id = user_progress[user_id]['current_bundle']
                     current_step = user_progress[user_id]['current_step']
-                    
+
                     if bundle_id and bundle_id in BUNDLES:
                         bundle = BUNDLES[bundle_id]
-                        
+
                         if current_step <= len(bundle['steps']):
                             response = f"✅ *Отлично! Шаг {current_step} выполнен!*\n\n"
-                            
+
                             if current_step < len(bundle['steps']):
                                 response += "Нажми *'➡️ Следующий шаг'*, чтобы продолжить."
                             else:
                                 response += "Ты выполнил все шаги! Нажми *'🎉 Завершить связку'*."
-                            
+
                             vk.messages.send(
                                 user_id=user_id,
                                 message=response,
                                 random_id=0
                             )
-                
+
                 # Следующий шаг
                 elif 'следующий шаг' in text:
                     bundle_id = user_progress[user_id]['current_bundle']
                     current_step_idx = user_progress[user_id]['current_step']
-                    
+
                     if bundle_id and bundle_id in BUNDLES:
                         bundle = BUNDLES[bundle_id]
-                        
+
                         if current_step_idx < len(bundle['steps']):
                             step = bundle['steps'][current_step_idx]
                             user_progress[user_id]['current_step'] += 1
-                            
+
                             has_ref_link = step.get('ref_link') is not None or step.get('ref_links') is not None
-                            
+
                             response = (
                                 f"🚀 *ШАГ {step['number']}: {step['title']}*\n"
                                 f"──────────────────\n"
@@ -1537,17 +1515,17 @@ def main():
                                 f"📌 *ТВОЕ ДЕЙСТВИЕ:*\n"
                                 f"{step['action']}"
                             )
-                            
+
                             if step.get('note'):
                                 response += f"\n\n📝 *ПРИМЕЧАНИЕ:* {step['note']}"
-                            
+
                             if step.get('ref_text'):
                                 response += f"\n\n🔗 *ССЫЛКА:* {step['ref_text']}"
-                            
+
                             keyboard = get_bundle_action_keyboard(
                                 bundle_id, step['number'], len(bundle['steps']), has_ref_link
                             )
-                            
+
                             vk.messages.send(
                                 user_id=user_id,
                                 message=response,
@@ -1566,53 +1544,53 @@ def main():
                                 f"4. Свяжись со мной для получения кода бота\n\n"
                                 f"📧 Остались вопросы? Пиши на почту: agerman113@vk.com"
                             )
-                            
+
                             if bundle_id not in user_progress[user_id]['completed_bundles']:
                                 user_progress[user_id]['completed_bundles'].append(bundle_id)
-                            
+
                             vk.messages.send(
                                 user_id=user_id,
                                 message=response,
                                 keyboard=get_main_keyboard(),
                                 random_id=0
                             )
-                
+
                 # Все шаги связки
                 elif 'все шаги связки' in text:
                     bundle_id = user_progress[user_id]['current_bundle']
-                    
+
                     if bundle_id and bundle_id in BUNDLES:
                         bundle = BUNDLES[bundle_id]
-                        
+
                         response = f"📋 *ВСЕ ШАГИ СВЯЗКИ '{bundle['name']}':*\n\n"
-                        
+
                         for i, step in enumerate(bundle['steps'], 1):
                             response += f"{i}. *{step['title']}*\n"
                             if step.get('note'):
                                 response += f"   📝 {step['note']}\n"
                             response += "\n"
-                        
+
                         response += f"*Всего шагов: {len(bundle['steps'])}*\n\n"
                         response += "📧 *По всем вопросам:* agerman113@vk.com"
-                        
+
                         vk.messages.send(
                             user_id=user_id,
                             message=response,
                             random_id=0
                         )
-                
+
                 # Завершить связку
                 elif 'завершить связку' in text:
                     bundle_id = user_progress[user_id]['current_bundle']
-                    
+
                     if bundle_id and bundle_id in BUNDLES:
                         bundle = BUNDLES[bundle_id]
-                        
+
                         if bundle_id not in user_progress[user_id]['completed_bundles']:
                             user_progress[user_id]['completed_bundles'].append(bundle_id)
-                        
+
                         completed = len(user_progress[user_id]['completed_bundles'])
-                        
+
                         response = (
                             f"🎉 *СВЯЗКА '{bundle['name']}' ЗАВЕРШЕНА!*\n\n"
                             f"✨ *ТВОИ ДОСТИЖЕНИЯ:*\n"
@@ -1627,17 +1605,17 @@ def main():
                             f"📧 *Остались вопросы? Пиши на почту:* agerman113@vk.com\n\n"
                             f"*Выбери следующее действие:*"
                         )
-                        
+
                         vk.messages.send(
                             user_id=user_id,
                             message=response,
                             keyboard=get_main_keyboard(),
                             random_id=0
                         )
-                        
+
                         user_progress[user_id]['current_bundle'] = None
                         user_progress[user_id]['current_step'] = 0
-    
+
     except Exception as e:
         logger.error(f"Ошибка в боте: {e}", exc_info=True)
 
