@@ -1326,16 +1326,6 @@ def main():
                         dont_parse_links=1
                     )
 
-                # Оформить ИП (ИСПРАВЛЕННАЯ ПРОВЕРКА)
-                elif any(ip_text in text for ip_text in ['оформить ип', 'ип']):
-                    vk.messages.send(
-                        user_id=user_id,
-                        message=IP_MESSAGE,
-                        keyboard=get_back_keyboard(),
-                        random_id=0,
-                        dont_parse_links=1
-                    )
-
                 # К выбору связки
                 elif 'к выбору связки' in text or '🔙 к выбору связки' in text:
                     user_progress[user_id]['current_bundle'] = None
@@ -1442,6 +1432,22 @@ def main():
                             message=step_response,
                             keyboard=keyboard,
                             random_id=0
+                        )
+
+                # ОФОРМИТЬ ИП - ИСПРАВЛЕННАЯ ПРОВЕРКА
+                # Важно: эта проверка должна быть ПОСЛЕ проверки связок
+                elif any(ip_text in text for ip_text in ['оформить ип', 'ип']):
+                    # Дополнительная проверка: если текст содержит "дипломы-vs", это не кнопка ИП
+                    if any(phrase in text for phrase in ['s-дипломы-vs', 'с-дипломы-vs', 'дипломы-vs']):
+                        # Это связка S-дипломы-VS, пропускаем обработку ИП
+                        pass
+                    else:
+                        vk.messages.send(
+                            user_id=user_id,
+                            message=IP_MESSAGE,
+                            keyboard=get_back_keyboard(),
+                            random_id=0,
+                            dont_parse_links=1
                         )
 
                 # Перейти по ссылке
