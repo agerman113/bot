@@ -2,9 +2,9 @@ import vk_api
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import os
-import json
 import logging
 from datetime import datetime
+import requests
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -13,12 +13,71 @@ logger = logging.getLogger(__name__)
 # Получение данных из переменных окружения
 GROUP_TOKEN = os.getenv('VK_GROUP_TOKEN')
 GROUP_ID = os.getenv('VK_GROUP_ID')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+
+# URL и модель OpenRouter
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = "stepfun/step-3.5-flash:free"
 
 # Ваша ссылка на регистрацию ИП
 IP_LINK = "https://vk.cc/cU6ZTa"
 
 # Хранилище прогресса пользователей
 user_progress = {}
+
+
+# ==================== ФУНКЦИЯ ЗАПРОСА К OPENROUTER ====================
+def get_ai_response(question, context=None):
+    """
+    Отправляет запрос к OpenRouter и возвращает ответ.
+    :param question: вопрос пользователя
+    :param context: строка с контекстом (текущая связка/шаг)
+    """
+    if not OPENROUTER_API_KEY:
+        logger.error("OPENROUTER_API_KEY не установлен")
+        return "⚠️ Извините, сервис временно недоступен (нет ключа API)."
+
+    system_prompt = (
+        "Ты — helpful ассистент в боте по партнерским программам и заработку. "
+        "Отвечай кратко, по делу, используй эмодзи. Отвечай только на русском. "
+        "Если вопрос не относится к теме партнерских программ или заработка, вежливо направь в нужное русло."
+    )
+
+    if context:
+        user_prompt = f"Контекст: {context}\n\nВопрос пользователя: {question}"
+    else:
+        user_prompt = question
+
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": f"https://vk.com/club{GROUP_ID}",
+        "X-Title": "VK Assistant Bot"
+    }
+
+    data = {
+        "model": OPENROUTER_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "max_tokens": 400,
+        "temperature": 0.7
+    }
+
+    try:
+        response = requests.post(OPENROUTER_URL, headers=headers, json=data, timeout=20)
+        response.raise_for_status()
+        result = response.json()
+        ai_text = result['choices'][0]['message']['content'].strip()
+        return ai_text
+    except requests.exceptions.Timeout:
+        logger.error("Таймаут при запросе к OpenRouter")
+        return "⏳ Сервис временно не отвечает. Попробуйте позже."
+    except Exception as e:
+        logger.error(f"Ошибка при запросе к OpenRouter: {e}")
+        return "❌ Что-то пошло не так. Попробуйте ещё раз."
+
 
 # ==================== ДАННЫЕ ИЗ ТАБЛИЦЫ ====================
 ADVANTAGES = [
@@ -1083,6 +1142,7 @@ BUNDLES = {
     }
 }
 
+
 # ==================== КЛАВИАТУРЫ ====================
 def get_main_keyboard():
     """Главное меню"""
@@ -1093,9 +1153,11 @@ def get_main_keyboard():
     keyboard.add_button('🎯 Все связки (15 шт)', color=VkKeyboardColor.PRIMARY)
     keyboard.add_button('📝 Оформить ИП', color=VkKeyboardColor.PRIMARY)
     keyboard.add_line()
+    keyboard.add_button('🔥 Мотивация', color=VkKeyboardColor.POSITIVE)
     keyboard.add_button('ℹ️ Инфо о проекте', color=VkKeyboardColor.SECONDARY)
 
     return keyboard.get_keyboard()
+
 
 def get_bundles_keyboard():
     """Выбор связки - первые 8 оригинальных"""
@@ -1124,6 +1186,7 @@ def get_bundles_keyboard():
 
     return keyboard.get_keyboard()
 
+
 def get_bundles_keyboard_page2():
     """Вторая страница связок (9-15)"""
     keyboard = VkKeyboard(one_time=False)
@@ -1149,6 +1212,7 @@ def get_bundles_keyboard_page2():
 
     return keyboard.get_keyboard()
 
+
 def get_bundle_action_keyboard(bundle_id, step_number, total_steps, has_ref_link=False):
     """Клавиатура для действий в связке"""
     keyboard = VkKeyboard(one_time=False)
@@ -1165,9 +1229,12 @@ def get_bundle_action_keyboard(bundle_id, step_number, total_steps, has_ref_link
 
     keyboard.add_line()
     keyboard.add_button('📋 Все шаги связки', color=VkKeyboardColor.SECONDARY)
+    keyboard.add_button('🤖 Спросить ИИ', color=VkKeyboardColor.PRIMARY)  # Новая кнопка
+    keyboard.add_line()
     keyboard.add_button('🔙 К выбору связки', color=VkKeyboardColor.NEGATIVE)
 
     return keyboard.get_keyboard()
+
 
 def get_back_keyboard():
     """Простая кнопка назад"""
@@ -1175,11 +1242,13 @@ def get_back_keyboard():
     keyboard.add_button('🔙 В главное меню', color=VkKeyboardColor.NEGATIVE)
     return keyboard.get_keyboard()
 
+
 def get_back_to_bundles_keyboard():
     """Кнопка назад к выбору связки"""
     keyboard = VkKeyboard(one_time=False)
     keyboard.add_button('🔙 К выбору связки', color=VkKeyboardColor.NEGATIVE)
     return keyboard.get_keyboard()
+
 
 # ==================== ТЕКСТОВЫЕ ШАБЛОНЫ ====================
 def get_welcome_message():
@@ -1213,6 +1282,35 @@ def get_welcome_message():
 
 🚀 *ВЫБЕРИ ДЕЙСТВИЕ НИЖЕ ⬇️*"""
 
+
+# ==================== ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ДЛЯ ОТПРАВКИ ШАГА ====================
+def send_step(vk, user_id, bundle_id, step_number):
+    """Отправляет пользователю описание шага и клавиатуру."""
+    bundle = BUNDLES[bundle_id]
+    step = bundle['steps'][step_number - 1]
+    has_ref_link = step.get('ref_link') is not None or step.get('ref_links') is not None
+
+    step_text = (
+        f"🚀 *ШАГ {step['number']}: {step['title']}*\n"
+        f"──────────────────\n"
+        f"{step['description']}\n\n"
+        f"📌 *ТВОЕ ДЕЙСТВИЕ:*\n"
+        f"{step['action']}"
+    )
+    if step.get('note'):
+        step_text += f"\n\n📝 *ПРИМЕЧАНИЕ:* {step['note']}"
+    if step.get('ref_text'):
+        step_text += f"\n\n🔗 *ССЫЛКА:* {step['ref_text']}"
+
+    keyboard = get_bundle_action_keyboard(bundle_id, step_number, len(bundle['steps']), has_ref_link)
+    vk.messages.send(
+        user_id=user_id,
+        message=step_text,
+        keyboard=keyboard,
+        random_id=0
+    )
+
+
 # ==================== ОСНОВНОЙ КОД ====================
 def main():
     if not GROUP_TOKEN or not GROUP_ID:
@@ -1238,20 +1336,97 @@ def main():
                         'current_bundle': None,
                         'current_step': 0,
                         'completed_bundles': [],
-                        'registration_time': datetime.now()
+                        'registration_time': datetime.now(),
+                        'awaiting_ai_question': False   # флаг ожидания вопроса
                     }
 
+                # --- СПЕЦИАЛЬНЫЙ РЕЖИМ: ожидание вопроса к AI ---
+                if user_progress[user_id].get('awaiting_ai_question'):
+                    # Проверяем, не является ли сообщение командой для выхода из режима
+                    if text in ['назад', 'главное меню', '🔙 в главное меню', 'в главное меню', 'старт', 'начать', 'меню']:
+                        user_progress[user_id]['awaiting_ai_question'] = False
+                        # Дальше продолжится обычная обработка команд (после этого блока)
+                    else:
+                        # Получен вопрос
+                        question = message['text']  # оригинальный текст (не lower)
+                        # Подготовим контекст, если пользователь внутри связки
+                        context = ""
+                        if user_progress[user_id]['current_bundle']:
+                            bundle_id = user_progress[user_id]['current_bundle']
+                            step_num = user_progress[user_id]['current_step']
+                            if bundle_id in BUNDLES and 1 <= step_num <= len(BUNDLES[bundle_id]['steps']):
+                                bundle = BUNDLES[bundle_id]
+                                step = bundle['steps'][step_num - 1]
+                                context = f"Связка: {bundle['name']}, шаг {step_num}: {step['title']}"
+
+                        # Отправляем запрос к AI
+                        vk.messages.send(
+                            user_id=user_id,
+                            message="🤔 Думаю над ответом...",
+                            random_id=0
+                        )
+                        ai_answer = get_ai_response(question, context)
+                        vk.messages.send(
+                            user_id=user_id,
+                            message=ai_answer,
+                            random_id=0
+                        )
+                        # Сбрасываем режим ожидания
+                        user_progress[user_id]['awaiting_ai_question'] = False
+
+                        # Возвращаем пользователя на текущий шаг (если он есть)
+                        if user_progress[user_id]['current_bundle'] and user_progress[user_id]['current_step']:
+                            bundle_id = user_progress[user_id]['current_bundle']
+                            step_num = user_progress[user_id]['current_step']
+                            if bundle_id in BUNDLES and 1 <= step_num <= len(BUNDLES[bundle_id]['steps']):
+                                send_step(vk, user_id, bundle_id, step_num)
+                            else:
+                                # Если шаг недействителен, отправляем в главное меню
+                                vk.messages.send(
+                                    user_id=user_id,
+                                    message=get_welcome_message(),
+                                    keyboard=get_main_keyboard(),
+                                    random_id=0
+                                )
+                        else:
+                            # Если не в связке, отправляем в главное меню
+                            vk.messages.send(
+                                user_id=user_id,
+                                message=get_welcome_message(),
+                                keyboard=get_main_keyboard(),
+                                random_id=0
+                            )
+                        continue  # пропускаем дальнейшую обработку команд
+
+                # --- ОБЫЧНАЯ ОБРАБОТКА КОМАНД ---
                 # УНИФИЦИРОВАННЫЙ ВХОД В ГЛАВНОЕ МЕНЮ
                 if (text in ['начать', 'старт', 'start', 'меню', 'привет', 'назад', 'главное меню', 'главное', 'домой', 'home', 'main'] or
                     '🔙 в главное меню' in text or
                     'в главное меню' in text):
-
+                    # Сбрасываем режим AI на всякий случай
+                    user_progress[user_id]['awaiting_ai_question'] = False
                     vk.messages.send(
                         user_id=user_id,
                         message=get_welcome_message(),
                         keyboard=get_main_keyboard(),
                         random_id=0,
                         dont_parse_links=1
+                    )
+                    continue
+
+                # Кнопка "Мотивация"
+                if ('🔥 мотивация' in text or text == 'мотивация') and not any(phrase in text for phrase in ['s-дипломы-vs', 'с-дипломы-vs', 'дипломы-vs']):
+                    vk.messages.send(
+                        user_id=user_id,
+                        message="✨ Собираю для тебя порцию мотивации...",
+                        random_id=0
+                    )
+                    ai_response = get_ai_response("Дай краткое мотивирующее пояснение новичку, который хочет начать зарабатывать. Ответ должен быть вдохновляющим и практичным, не более 500 символов.")
+                    vk.messages.send(
+                        user_id=user_id,
+                        message=ai_response,
+                        keyboard=get_main_keyboard(),
+                        random_id=0
                     )
                     continue
 
@@ -1331,6 +1506,7 @@ def main():
                 elif 'к выбору связки' in text or '🔙 к выбору связки' in text:
                     user_progress[user_id]['current_bundle'] = None
                     user_progress[user_id]['current_step'] = 0
+                    user_progress[user_id]['awaiting_ai_question'] = False
 
                     vk.messages.send(
                         user_id=user_id,
@@ -1338,6 +1514,17 @@ def main():
                         keyboard=get_bundles_keyboard(),
                         random_id=0
                     )
+
+                # НОВАЯ КНОПКА: "Спросить ИИ"
+                elif '🤖 спросить ии' in text or text == 'спросить ии':
+                    # Устанавливаем режим ожидания вопроса
+                    user_progress[user_id]['awaiting_ai_question'] = True
+                    vk.messages.send(
+                        user_id=user_id,
+                        message="✍️ Напишите ваш вопрос по текущему шагу или проекту. Я постараюсь помочь!",
+                        random_id=0
+                    )
+                    continue
 
                 # Обработка выбора связки
                 elif any(phrase in text for phrase in [
@@ -1400,48 +1587,19 @@ def main():
                             f"Готов начать? Переходим к первому шагу!"
                         )
 
-                        # Показываем первый шаг
-                        step = bundle['steps'][0]
-                        has_ref_link = step.get('ref_link') is not None or step.get('ref_links') is not None
-
-                        step_response = (
-                            f"🚀 *ШАГ {step['number']}: {step['title']}*\n"
-                            f"──────────────────\n"
-                            f"{step['description']}\n\n"
-                            f"📌 *ТВОЕ ДЕЙСТВИЕ:*\n"
-                            f"{step['action']}"
-                        )
-
-                        if step.get('note'):
-                            step_response += f"\n\n📝 *ПРИМЕЧАНИЕ:* {step['note']}"
-
-                        if step.get('ref_text'):
-                            step_response += f"\n\n🔗 *ССЫЛКА:* {step['ref_text']}"
-
-                        keyboard = get_bundle_action_keyboard(
-                            bundle_id, 1, len(bundle['steps']), has_ref_link
-                        )
-
                         vk.messages.send(
                             user_id=user_id,
                             message=response,
                             random_id=0
                         )
 
-                        vk.messages.send(
-                            user_id=user_id,
-                            message=step_response,
-                            keyboard=keyboard,
-                            random_id=0
-                        )
+                        # Отправляем первый шаг
+                        send_step(vk, user_id, bundle_id, 1)
 
-                # ОФОРМИТЬ ИП - ИСПРАВЛЕННАЯ ПРОВЕРКА
-                # Важно: эта проверка должна быть ПОСЛЕ проверки связок
+                # ОФОРМИТЬ ИП
                 elif any(ip_text in text for ip_text in ['оформить ип', 'ип']):
-                    # Дополнительная проверка: если текст содержит "дипломы-vs", это не кнопка ИП
                     if any(phrase in text for phrase in ['s-дипломы-vs', 'с-дипломы-vs', 'дипломы-vs']):
-                        # Это связка S-дипломы-VS, пропускаем обработку ИП
-                        pass
+                        pass  # это связка, пропускаем
                     else:
                         vk.messages.send(
                             user_id=user_id,
@@ -1625,6 +1783,7 @@ def main():
 
     except Exception as e:
         logger.error(f"Ошибка в боте: {e}", exc_info=True)
+
 
 if __name__ == '__main__':
     main()
