@@ -17,7 +17,7 @@ OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 
 # URL и модель OpenRouter
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "google/gemma-4-26b-a4b-it:free"
+OPENROUTER_MODEL = "arcee-ai/trinity-large-preview:free"
 
 # Ваша ссылка на регистрацию ИП
 IP_LINK = "https://vk.cc/cU6ZTa"
